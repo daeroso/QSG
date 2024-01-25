@@ -1,31 +1,33 @@
+###############################################################################
+#
+#	The QSG-AN and QSG-PS models from Roberts, Gieles, Erkal, 
+#			and Sanders (2024)
+#
+###############################################################################
+
+
 import numpy as np
 import scipy.integrate as spi
 from tqdm import tqdm
-from numba import njit
 
 G = 4.3009125E-6 # kpc (km/s)^2 /Msun
 kms_to_kpcMyr = 1.023e-3 # kpc/Myr
 np.random.seed(1234)
 
-#Mass Dependent Mass Loss Rate
-#@njit
+# Mass-Loss Rate
 def Mdot(m0,td,mdep,tobs,tau):
-	return (-m0/((1-mdep)*td)) * (1-((tobs-(1/tau))/td))**(mdep/(1-mdep))
+	return -m0/((1-mdep)*td) * (1-((tobs-(1/tau))/td))**(mdep/(1-mdep))
 
 # Cluster Mass at Time t
-#@njit
 def Mt(m0,td,mdep,tobs,tau):
 	return m0*((1-((tobs-(1/tau))/td)))**(1/(1-mdep))
 
 # QSG Density integrand
-#@njit
 def drho_dtau(tau,tobs,td,phi1,m0,mbh,mdep,orbit_params,free_params):
 	R,Vc,Vc_kpc_Myr,AngVel,gamma = orbit_params
 	fe,eps = free_params
 	mt = Mt(m0-mbh, td, mdep, tobs, tau) + mbh
-	#mt = Mt(m0, td, mdep, tobs, tau) + mbh
-	#if (tobs - 1/tau) <= td and mt >= mbh:
-	if (tobs - 1/tau) <= td and mt >= mbh:# and tau <= 0.1:
+	if (tobs - 1/tau) <= td and mt >= mbh:
 		dm = Mdot(m0, td, mdep, tobs, tau)
 		rj = (G*mt/(2*(Vc/R)**2))**(1/3)
 		rh = 0.15 * rj # assume a roche filling cluster
@@ -39,7 +41,6 @@ def drho_dtau(tau,tobs,td,phi1,m0,mbh,mdep,orbit_params,free_params):
 	else:
 		return 0
 
-#@njit
 def QSG_AN(t,td,m0,mdep,R,Vc,mbh=0,gamma=np.sqrt(2),fe=1.5,eps=0.58):
 	'''
 	Quantifying Stream Growth - Analytic
@@ -75,7 +76,6 @@ def QSG_AN(t,td,m0,mdep,R,Vc,mbh=0,gamma=np.sqrt(2),fe=1.5,eps=0.58):
 	return phi1_arr, rho_arr
 
 # QSG Equations of motion
-#@njit
 def delta_phi1(t,dvx,dvy,dr,orbit_params,free_params):
 	R,Vc,Vc_kpc_Myr,AngVel,gamma = orbit_params
 	fe,eps = free_params
@@ -84,7 +84,7 @@ def delta_phi1(t,dvx,dvy,dr,orbit_params,free_params):
 	OscillatoryTerm2 = 4/gamma**3 * np.multiply(dvy/Vc_kpc_Myr, np.sin((gamma*Vc_kpc_Myr*t/R)))
 	OscillatoryTerm3 = - 2/gamma**2 * np.multiply(dvx/Vc_kpc_Myr, (1-np.cos((gamma*Vc_kpc_Myr*t/R))))
 	return LinearTerms + OscillatoryTerm1 + OscillatoryTerm2 + OscillatoryTerm3
-#@njit
+
 def delta_r(t,dvx,dvy,dr,orbit_params,free_params):
 	R,Vc,Vc_kpc_Myr,AngVel,gamma = orbit_params
 	fe,eps = free_params
@@ -92,7 +92,7 @@ def delta_r(t,dvx,dvy,dr,orbit_params,free_params):
 	Term2 = (2*R/gamma**2) * np.multiply(((dvy/Vc_kpc_Myr) + (1+eps)*(dr/R)), (1-np.cos((gamma*Vc_kpc_Myr*t/R))))
 	Term3 = R*np.multiply(dvx/Vc_kpc_Myr, (np.sin((gamma*Vc_kpc_Myr*t/R)))) / gamma
 	return Term1+Term2+Term3
-#@njit
+
 def delta_z(t,dvz,orbit_params,free_params):
 	AngVel = orbit_params[3]
 	return dvz/AngVel * np.sin(AngVel*t)
@@ -156,7 +156,6 @@ def QSG_PS(trange,td,m0,mstar,mdep,R,Vc,mbh=0,gamma=np.sqrt(2),fe=1.5,eps=0.58):
 		snaps = trange
 	else:
 		snaps = np.arange(trange[0],trange[1]+trange[2],trange[2])
-	StarPos = []
 	StarPos = np.empty((len(snaps),len(stars),4))
 	StarPos.fill(np.NaN)
 	for i in range(len(snaps)):
