@@ -150,10 +150,8 @@ def QSG_PS(trange,td,m0,mstar,mdep,R,Vc,mbh=0,gamma=np.sqrt(2),fe=1.5,eps=0.58):
 	orbit_params = np.array([R,Vc,Vc*kms_to_kpcMyr,R/Vc/kms_to_kpcMyr,gamma])
 	free_params = np.array([fe,eps])
 	stars = PS_genICs(m0,td,mdep,mstar,mbh,orbit_params,free_params)
-	if len(np.atleast_1d(trange)) == 1:
+	if len(np.atleast_1d(trange)) != 3:
 		snaps = np.atleast_1d(trange)
-	elif len(np.atleast_1d(trange)) > 1 and len(np.atleast_1d(trange)) != 3:
-		snaps = trange
 	else:
 		snaps = np.arange(trange[0],trange[1]+trange[2],trange[2])
 	StarPos = np.empty((len(snaps),len(stars),4))
